@@ -1,0 +1,638 @@
+{
+  "info": {
+    "name": "Qwen3-VL vLLM API",
+    "_postman_id": "qwen3-vl-vllm-collection",
+    "description": "OpenAI-compatible API collection for Qwen3-VL-8B-Instruct served via vLLM on port 8000.\n\nSet the `base_url` collection variable to your server address (default: http://localhost:8000).\n\nAll chat completion requests go to POST {{base_url}}/v1/chat/completions.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "model",
+      "value": "Qwen/Qwen3-VL-8B-Instruct",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /v1/models",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/models",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "models"]
+            },
+            "description": "Lists all models loaded by the vLLM server. Verifies the server is up and the expected model is registered."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Basic health check. Returns 200 when the server is ready."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Text Messages",
+      "item": [
+        {
+          "name": "Simple text",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"Reply with exactly: OK\" }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Minimal single-turn text request. Expects a non-empty string response."
+          },
+          "response": []
+        },
+        {
+          "name": "System + user message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"You are a helpful assistant. Be concise.\" },\n    { \"role\": \"user\", \"content\": \"What is 2 + 2?\" }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "System prompt combined with a user message. Response should contain '4'."
+          },
+          "response": []
+        },
+        {
+          "name": "Multi-turn conversation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"My name is Alex.\" },\n    { \"role\": \"assistant\", \"content\": \"Hello Alex!\" },\n    { \"role\": \"user\", \"content\": \"What is my name?\" }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Three-turn conversation. The model should recall the name 'Alex' from context."
+          },
+          "response": []
+        },
+        {
+          "name": "Temperature = 0 (deterministic)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"What is 1 + 1? Answer with just the number.\" }\n  ],\n  \"max_tokens\": 256,\n  \"temperature\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "With temperature=0, repeated calls should produce identical outputs."
+          },
+          "response": []
+        },
+        {
+          "name": "max_tokens respected",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"Write a very long essay about the universe.\" }\n  ],\n  \"max_tokens\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Verifies the server honours the max_tokens cap. Completion tokens should be <= 15."
+          },
+          "response": []
+        },
+        {
+          "name": "Stop sequence",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"Count: one two three four five\" }\n  ],\n  \"max_tokens\": 50,\n  \"stop\": [\"three\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Generation must stop at 'three'. The word 'four' should NOT appear in the response."
+          },
+          "response": []
+        },
+        {
+          "name": "Response structure check",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"Hi\" }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Validates the full OpenAI response shape: id, object, choices, usage (prompt_tokens, completion_tokens, total_tokens)."
+          },
+          "response": []
+        },
+        {
+          "name": "n=2 (two completions)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"Say hi\" }\n  ],\n  \"max_tokens\": 256,\n  \"n\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Requests two independent completions. Response choices array should have length 2."
+          },
+          "response": []
+        },
+        {
+          "name": "Empty system message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"\" },\n    { \"role\": \"user\", \"content\": \"Say hello\" }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Edge case: empty string system message. Should not cause a 4xx/5xx error."
+          },
+          "response": []
+        },
+        {
+          "name": "Long prompt",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"Summarize this: lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet\" }\n  ],\n  \"max_tokens\": 64\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Stress-tests the tokenizer with a long repeated input (~100x 'lorem ipsum')."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Image Messages",
+      "item": [
+        {
+          "name": "Red image — color check",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{red_image_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"Is this image mostly red? Answer yes or no.\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Sends a solid red 224x224 JPEG as base64 data URI. Set the collection variable `red_image_base64` to: data:image/jpeg;base64,<your-base64>. Expects 'yes' or 'red' in the response."
+          },
+          "response": []
+        },
+        {
+          "name": "Blue image — color identification",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{blue_image_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"What color is this image? One word.\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Sends a solid blue 224x224 JPEG. Set `blue_image_base64` collection variable to the data URI."
+          },
+          "response": []
+        },
+        {
+          "name": "Green image — describe",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{green_image_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"Describe the image in one sentence.\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Sends a solid green 224x224 JPEG. Set `green_image_base64` collection variable."
+          },
+          "response": []
+        },
+        {
+          "name": "Multiple images — count",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{red_image_base64}}\" }\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{blue_image_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"How many images are there?\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Sends two images in a single message. The model should respond with '2' or 'two'."
+          },
+          "response": []
+        },
+        {
+          "name": "Image with system prompt",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"You are a color expert. Always mention exact RGB values when possible.\" },\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{grey_image_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"Describe this image.\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Combines a system prompt with a vision request. Uses a grey (128,128,128) image. Set `grey_image_base64`."
+          },
+          "response": []
+        },
+        {
+          "name": "Image then text follow-up (multi-turn)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{yellow_image_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"What color is this?\" }\n      ]\n    },\n    { \"role\": \"assistant\", \"content\": \"The image is yellow.\" },\n    { \"role\": \"user\", \"content\": \"Is yellow a warm or cool color?\" }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Multi-turn: first turn includes an image, follow-up is text-only. Set `yellow_image_base64`. Expects 'warm' or 'cool' in response."
+          },
+          "response": []
+        },
+        {
+          "name": "Malformed base64 image (error handling)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"data:image/jpeg;base64,NOT_VALID!!!\" }\n        },\n        { \"type\": \"text\", \"text\": \"Describe.\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Intentionally malformed base64. Server should return 200, 400, 422, or 500."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Real Image (test.jpg — Abay Zholy)",
+      "item": [
+        {
+          "name": "Describe real image",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{test_jpg_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"Describe what you see in this image.\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Uses the real test.jpg (illustrated cover for 'Abay Zholy'). Set `test_jpg_base64` to the base64 data URI of test.jpg. Response must be > 20 characters."
+          },
+          "response": []
+        },
+        {
+          "name": "Count people in real image",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{test_jpg_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"How many people are in this image? Answer with a number.\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Counts people in the illustration. Expected answer: '3' or 'three'."
+          },
+          "response": []
+        },
+        {
+          "name": "Read text in real image (OCR)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{test_jpg_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"What text is written at the bottom of this image?\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "OCR test — reads the Kazakh text at the bottom of the cover. Expects a non-empty response (> 5 chars)."
+          },
+          "response": []
+        },
+        {
+          "name": "Art style — photo or illustration?",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{test_jpg_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"Is this a photograph or an illustration? One word.\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Classifies the image as photo vs illustration. Expects 'illustration', 'drawing', 'art', or 'painted'."
+          },
+          "response": []
+        },
+        {
+          "name": "Image with text follow-up (clothing)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{test_jpg_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"Describe the clothing of the central figure.\" }\n      ]\n    },\n    { \"role\": \"assistant\", \"content\": \"The central figure wears a teal/turquoise headband and a colorful robe.\" },\n    { \"role\": \"user\", \"content\": \"What does the headband color symbolize in Central Asian culture?\" }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Multi-turn vision conversation about the illustration. Second turn is cultural context follow-up."
+          },
+          "response": []
+        },
+        {
+          "name": "Stream real image",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{test_jpg_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"What is happening in this image?\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 128,\n  \"stream\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Streaming vision request using the real test.jpg. Response is Server-Sent Events (SSE). Each line prefixed with 'data: ', terminated by 'data: [DONE]'."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Streaming",
+      "item": [
+        {
+          "name": "Stream text — count 1 to 5",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"Count from 1 to 5.\" }\n  ],\n  \"max_tokens\": 64,\n  \"stream\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Text-only streaming request. Response is SSE. Expects at least one chunk containing '1', '2', or '3'."
+          },
+          "response": []
+        },
+        {
+          "name": "Stream image — red color",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"{{red_image_base64}}\" }\n        },\n        { \"type\": \"text\", \"text\": \"What color is this?\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 64,\n  \"stream\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Vision streaming request. Response is SSE. Expects a non-empty byte stream."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Handling",
+      "item": [
+        {
+          "name": "Missing model field",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"hi\" }\n  ],\n  \"max_tokens\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Omits the required 'model' field. vLLM typically defaults to the loaded model and returns 200, or may return 400/422."
+          },
+          "response": []
+        },
+        {
+          "name": "Wrong model name",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"nonexistent-model-xyz\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"hi\" }\n  ],\n  \"max_tokens\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Requests a model that is not loaded. Expects HTTP 400 or 404."
+          },
+          "response": []
+        },
+        {
+          "name": "Empty messages array",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Empty messages array. Expects HTTP 400 or 422 (validation error)."
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid temperature (999)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"hi\" }\n  ],\n  \"max_tokens\": 256,\n  \"temperature\": 999\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Out-of-range temperature. Server may clamp it or reject with 400/422."
+          },
+          "response": []
+        },
+        {
+          "name": "Negative max_tokens",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"hi\" }\n  ],\n  \"max_tokens\": -1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Negative max_tokens value. Expects HTTP 400 or 422."
+          },
+          "response": []
+        },
+        {
+          "name": "Malformed image base64",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"data:image/jpeg;base64,NOT_VALID_BASE64!!!\" }\n        },\n        { \"type\": \"text\", \"text\": \"Describe.\" }\n      ]\n    }\n  ],\n  \"max_tokens\": 256\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            },
+            "description": "Invalid base64 string in image_url. Expects 200, 400, 422, or 500 — must not hang."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
