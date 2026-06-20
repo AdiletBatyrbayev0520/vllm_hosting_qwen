@@ -26,26 +26,23 @@ services:
             - driver: nvidia
               count: "all"
               capabilities: [gpu]
+  
   gemma-4-server:
     image: vllm/vllm-openai:latest
-    container_name: gemma-4-vllm
-    runtime: nvidia # Ensures GPU access
-    ipc: host       # Required for vLLM shared memory performance
+    container_name: gemma4
+    runtime: nvidia
+    ipc: host
     ports:
       - "8001:8001"
     volumes:
-      # Mounts a local cache so you don't redownload the model on every restart
       - ~/.cache/huggingface:/root/.cache/huggingface
     environment:
-      # - HUGGING_FACE_HUB_TOKEN=your_token_here # Uncomment if using a gated model
-      - CUDA_VISIBLE_DEVICES=0 # Change to "0,1" etc., if using multiple GPUs
       - HF_TOKEN=${HF_TOKEN}
     command: >
       --model google/gemma-4-E4B-it
-      --trust-remote-code
-      --max-model-len 16384
-      --dtype auto
-      --enforce-eager
+      --max-model-len 32768
+      --max-num-batched-tokens 8192
+      --gpu-memory-utilization 0.90
       --host 0.0.0.0
       --port 8001
     deploy:
@@ -55,6 +52,7 @@ services:
             - driver: nvidia
               count: "all"
               capabilities: [gpu]
+
   openwebui:
     image: ghcr.io/open-webui/open-webui:main-slim
     ports:
