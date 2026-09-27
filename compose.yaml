@@ -27,30 +27,50 @@ services:
               count: "all"
               capabilities: [gpu]
   
-  gemma-4-server:
-    image: vllm/vllm-openai:latest
-    container_name: gemma4
-    runtime: nvidia
-    ipc: host
+  # gemma-4-server:
+  #   image: vllm/vllm-openai:latest
+  #   container_name: gemma4
+  #   runtime: nvidia
+  #   ipc: host
+  #   ports:
+  #     - "8001:8001"
+  #   volumes:
+  #     - ~/.cache/huggingface:/root/.cache/huggingface
+  #   environment:
+  #     - HF_TOKEN=${HF_TOKEN}
+  #   command: >
+  #     --model google/gemma-4-E4B-it
+  #     --max-model-len 31000
+  #     --max-num-batched-tokens 8192
+  #     --gpu-memory-utilization 0.90
+  #     --host 0.0.0.0
+  #     --port 8001
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: "all"
+  #             capabilities: [gpu]
+
+  # vLLM doesn't support DistilBertForSequenceClassification, so this uses HF TEI
+  sentiment-server:
+    image: ghcr.io/huggingface/text-embeddings-inference:cuda-1.9
+    container_name: distilbert-sst2
     ports:
-      - "8001:8001"
+      - "8001:80"
     volumes:
-      - ~/.cache/huggingface:/root/.cache/huggingface
+      - ~/.cache/huggingface:/data
     environment:
       - HF_TOKEN=${HF_TOKEN}
     command: >
-      --model google/gemma-4-E4B-it
-      --max-model-len 32768
-      --max-num-batched-tokens 8192
-      --gpu-memory-utilization 0.90
-      --host 0.0.0.0
-      --port 8001
+      --model-id distilbert/distilbert-base-uncased-finetuned-sst-2-english
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: "all"
+              device_ids: ["1"] # GPU 0 is used by qwen3-vl-server
               capabilities: [gpu]
 
   openwebui:
