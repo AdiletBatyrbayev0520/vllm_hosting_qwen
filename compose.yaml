@@ -53,18 +53,21 @@ services:
   #             count: "all"
   #             capabilities: [gpu]
 
-  # vLLM doesn't support DistilBertForSequenceClassification, so this uses HF TEI
+  # vLLM and HF TEI don't support DistilBERT sequence classification, so this runs
+  # a transformers pipeline behind FastAPI (sentiment/app.py). It reuses the vLLM
+  # image for its Blackwell-compatible torch + transformers + uvicorn.
   sentiment-server:
-    image: ghcr.io/huggingface/text-embeddings-inference:cuda-1.9
+    image: vllm/vllm-openai:latest
     container_name: distilbert-sst2
     ports:
-      - "8001:80"
+      - "8001:8001"
     volumes:
-      - ~/.cache/huggingface:/data
+      - ~/.cache/huggingface:/root/.cache/huggingface
+      - ./sentiment:/app:ro
     environment:
       - HF_TOKEN=${HF_TOKEN}
-    command: >
-      --model-id distilbert/distilbert-base-uncased-finetuned-sst-2-english
+    working_dir: /app
+    entrypoint: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001"]
     deploy:
       resources:
         reservations:
