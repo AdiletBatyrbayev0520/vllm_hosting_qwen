@@ -76,6 +76,30 @@ services:
               device_ids: ["1"] # GPU 0 is used by qwen3-vl-server
               capabilities: [gpu]
 
+  # convaiinnovations/laya is a custom architecture (not a stock transformers
+  # pipeline), so it runs on the laya package's own HTTP server (laya-serve).
+  # Endpoints: GET /health, POST /v1/systemone {"state": ..., "questions": {...}}
+  laya-server:
+    build: ./laya
+    container_name: laya
+    ports:
+      - "8002:8002"
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - LAYA_DEVICE=cuda
+      - LAYA_PRELOAD=1
+      - LAYA_MODELS=english # root checkpoint of convaiinnovations/laya
+      - LAYA_PORT=8002
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["1"] # GPU 0 is used by qwen3-vl-server
+              capabilities: [gpu]
+
   openwebui:
     image: ghcr.io/open-webui/open-webui:main-slim
     ports:
