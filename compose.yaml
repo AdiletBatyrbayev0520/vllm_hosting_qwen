@@ -11,7 +11,7 @@ services:
       - ~/.cache/huggingface:/root/.cache/huggingface
     environment:
       # - HUGGING_FACE_HUB_TOKEN=your_token_here # Uncomment if using a gated model
-      - CUDA_VISIBLE_DEVICES=0 # Change to "0,1" etc., if using multiple GPUs
+      - CUDA_VISIBLE_DEVICES=0,1 # Change to "0,1" etc., if using multiple GPUs
       - HF_TOKEN=${HF_TOKEN}
     command: >
       --model Qwen/Qwen3-VL-8B-Instruct
@@ -99,6 +99,26 @@ services:
             - driver: nvidia
               device_ids: ["1"] # GPU 0 is used by qwen3-vl-server
               capabilities: [gpu]
+
+  # OpenAI-compatible DLP gateway (dlp/app.py): checks each prompt with regex rules
+  # and Laya, then forwards it to the provider or answers with a block message.
+  # Point clients at http://localhost:8003/v1 instead of the provider.
+  dlp-gateway:
+    image: vllm/vllm-openai:latest
+    container_name: dlp-gateway
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./dlp:/app:ro
+    environment:
+      - PROVIDER_URL=http://qwen3-vl-server:8000/v1 # any OpenAI-compatible provider
+      - PROVIDER_API_KEY=${PROVIDER_API_KEY:-}
+      - LAYA_URL=http://laya-server:8002
+      - DLP_BLOCK_THRESHOLD=0.2 # tuned on a small sample; leaks scored 0.22-0.77, clean <0.05
+    working_dir: /app
+    entrypoint: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8003"]
+    depends_on:
+      - laya-server
 
   openwebui:
     image: ghcr.io/open-webui/open-webui:main-slim
