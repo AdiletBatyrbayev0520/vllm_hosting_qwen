@@ -76,56 +76,15 @@ services:
               device_ids: ["1"] # GPU 0 is used by qwen3-vl-server
               capabilities: [gpu]
 
-  # convaiinnovations/laya is a custom architecture (not a stock transformers
-  # pipeline), so it runs on the laya package's own HTTP server (laya-serve).
-  # Endpoints: GET /health, POST /v1/systemone {"state": ..., "questions": {...}}
-  laya-server:
-    build: ./laya
-    container_name: laya
-    ports:
-      - "8002:8002"
-    volumes:
-      - ~/.cache/huggingface:/root/.cache/huggingface
-    environment:
-      - HF_TOKEN=${HF_TOKEN}
-      - LAYA_DEVICE=cuda
-      - LAYA_PRELOAD=1
-      - LAYA_MODELS=english # root checkpoint of convaiinnovations/laya
-      - LAYA_PORT=8002
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ["1"] # GPU 0 is used by qwen3-vl-server
-              capabilities: [gpu]
-
-  # OpenAI-compatible DLP gateway (dlp/app.py): checks each prompt with regex rules
-  # and Laya, then forwards it to the provider or answers with a block message.
-  # Point clients at http://localhost:8003/v1 instead of the provider.
-  dlp-gateway:
-    image: vllm/vllm-openai:latest
-    container_name: dlp-gateway
-    ports:
-      - "8003:8003"
-    volumes:
-      - ./dlp:/app:ro
-    environment:
-      - PROVIDER_URL=http://qwen3-vl-server:8000/v1 # any OpenAI-compatible provider
-      - PROVIDER_API_KEY=${PROVIDER_API_KEY:-}
-      - LAYA_URL=http://laya-server:8002
-      - DLP_BLOCK_THRESHOLD=0.2 # tuned on a small sample; leaks scored 0.22-0.77, clean <0.05
-    working_dir: /app
-    entrypoint: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8003"]
-    depends_on:
-      - laya-server
-
   openwebui:
     image: ghcr.io/open-webui/open-webui:main-slim
     ports:
       - "3000:8080"
     volumes:
       - open-webui:/app/backend/data
+    extra_hosts:
+      # reach the qShield DLP gateway (qShield/infra) at http://host.docker.internal:8003/v1
+      - "host.docker.internal:host-gateway"
     environment:
       - HF_TOKEN=${HF_TOKEN}
 volumes:
